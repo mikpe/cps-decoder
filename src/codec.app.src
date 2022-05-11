@@ -1,0 +1,6 @@
+{application, codec,
+ [{description, "codec: investigates optimizations for decoding serialized terms"},
+  {vsn, git},
+  {modules, []},
+  {applications, [kernel, stdlib]}
+ ]}.
