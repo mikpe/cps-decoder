@@ -36,7 +36,7 @@ decode(<<Sz:8, Packet:Sz/binary, Rest/binary>>) ->
   decode(Rest).
 ```
 
-On the author's PC, with OTP-24.2.2, the second version is more than 2 times faster, and close to 3 times faster
+On the author's PC, with Erlang/OTP-24.2.2, the second version is more than 2 times faster, and close to 3 times faster
 for longer streams. Why is that?
 
 If we put the first version in a module `stream_v1.erl` and compile it with `erlc +bin_opt_info` the compiler says:
@@ -59,6 +59,37 @@ The key here is the mention of **match context** and the fact that it gets **reu
 
 (The "Warning" is not really a warning but an artifact of `+bin_opt_info` piggy-backing on
 the compiler's warning infrastructure to emit this information.)
+
+## Binaries
+
+Binaries are just arrays of bytes, but they have a few different representations internally:
+
+- real binaries which contain or refer to arrays of bytes, they exist in two different
+  forms depending on their size and how their memory is managed
+- **sub binaries** which represent slices (start and length) of real binaries
+
+## Binary Matching (Bit Syntax)
+
+The **bit syntax** allows binaries to be viewed not simply as arrays of bytes, but as
+sequences of variable-length **bit fields**. Binary matching is a left-to-right process where
+an input binary is decomposed into a sequence of bit fields, and possibly a "rest" binary.
+
+For example, the following will decompose a sequence of 8-bit bytes into a list of 4-bit nibbles:
+
+```
+nibbles(<<>>) -> [];
+nibbles(<<N:4,Rest/bitstring>>) -> [N | nibbles(Rest)].
+...
+% nibbles(<<16#12,16#34>>) = [1,2,3,4]
+```
+
+To perform binary matching, the implementation needs:
+
+- an input binary (start and length)
+- its current **bit** position in that input as it scans from left to right
+- its original input position in case it needs to backtrack to try another clause
+
+These values form the so-called **match contexts**.
 
 ## Match Contexts
 
